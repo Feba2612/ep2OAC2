@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
 // Função para calcular a distância Euclidiana entre vetores
 double calcular_distancia(float *p1, float *p2, int w) {
@@ -129,9 +130,11 @@ void salvar_dadosytest(char *arquivo, float *y, int n_linhas) {
 }
 
 int main() {
+    clock_t inicio_tempo = clock(); // Início da contagem de tempo
+
     int k = 5;
-    int w = 3; // Tamanho da janela de previsão
-    int h = 1; // Passo de previsão
+    int w = 3;
+    int h = 1;
 
     int ntrain = contar_linhas("xtrain.txt");
     int ntest = contar_linhas("xtest.txt");
@@ -139,7 +142,6 @@ int main() {
     float *xtrain = (float *)malloc(ntrain * sizeof(float));
     float *xtest = (float *)malloc(ntest * sizeof(float));
 
-    // Matrizes para representar as janelas
     float **X_train = (float **)malloc((ntrain - w - h) * sizeof(float *));
     for (int i = 0; i < ntrain - w - h; i++) {
         X_train[i] = (float *)malloc(w * sizeof(float));
@@ -157,27 +159,23 @@ int main() {
 
     gerar_X_y_train(xtrain, X_train, ytrain, ntrain, w, h);
 
-    // Gerar `X_test` a partir de `xtest` com janelas deslizantes
     for (int i = 0; i < ntest - w; i++) {
         for (int j = 0; j < w; j++) {
             X_test[i][j] = xtest[i + j];
         }
     }
 
-    // Normalizar matrizes após a geração das janelas
     normalizar_matriz(X_train, ntrain - w - h, w);
     normalizar_matriz(X_test, ntest - w, w);
 
     salvar_dados("ytrain.txt", ytrain, ntrain - w - h);
 
-    // Calcular previsões usando KNN
     for (int i = 0; i < ntest - w; i++) {
         ytest[i] = knn(X_train, ytrain, X_test[i], ntrain - w - h, w, k);
     }
 
     salvar_dadosytest("ytest.txt", ytest, ntest - w);
 
-    // Liberar memória
     for (int i = 0; i < ntrain - w - h; i++) {
         free(X_train[i]);
     }
@@ -193,7 +191,9 @@ int main() {
     free(xtest);
     free(ytest);
 
-    printf("Processo concluído.\n");
+    clock_t fim_tempo = clock(); // Fim da contagem de tempo
+    double tempo_total = ((double)(fim_tempo - inicio_tempo)) / CLOCKS_PER_SEC;
+    printf("Tempo total de execução sem OpenMP: %.4f segundos\n", tempo_total);
 
     return 0;
 }
