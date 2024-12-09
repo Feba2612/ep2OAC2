@@ -156,6 +156,8 @@ int main(int argc, char *argv[]) {
     ler_dados(arquivo_train, xtrain, ntrain);
     ler_dados(arquivo_test, xtest, ntest);
 
+    double inicio = omp_get_wtime(); // Início da contagem de tempo
+
     gerar_X_y_train(xtrain, X_train, ytrain, ntrain, w, h);
 
     // Gerar `X_test` a partir de `xtest` com janelas deslizantes
@@ -179,6 +181,10 @@ int main(int argc, char *argv[]) {
     }
 
     salvar_dados("ytest.txt", ytest, ntest - w);
+
+    double fim = omp_get_wtime(); // Fim da contagem de tempo
+
+    printf("Tempo de execução: %.5f segundos\n", fim - inicio);
 
     // Liberar memória
     for (int i = 0; i < ntrain - w - h; i++) {
