@@ -156,8 +156,7 @@ int main(int argc, char *argv[]) {
     ler_dados(arquivo_train, xtrain, ntrain);
     ler_dados(arquivo_test, xtest, ntest);
 
-    double inicio = omp_get_wtime(); // Início da contagem de tempo
-
+    // Geração de janelas e treinamento
     gerar_X_y_train(xtrain, X_train, ytrain, ntrain, w, h);
 
     // Gerar `X_test` a partir de `xtest` com janelas deslizantes
@@ -168,25 +167,30 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Normalizar matrizes após a geração das janelas
+    // Normalização das matrizes
     normalizar_matriz(X_train, ntrain - w - h, w);
     normalizar_matriz(X_test, ntest - w, w);
 
     salvar_dados("ytrain.txt", ytrain, ntrain - w - h);
 
-    // Calcular previsões usando KNN
+    // Agora iniciamos a contagem de tempo apenas para a fase de previsão (KNN)
+    double inicio_previsao = omp_get_wtime();
+
+    // Previsões usando KNN
     #pragma omp parallel for
     for (int i = 0; i < ntest - w; i++) {
         ytest[i] = knn(X_train, ytrain, X_test[i], ntrain - w - h, w, k);
     }
 
+    double fim_previsao = omp_get_wtime();
+
+    // Salvar previsões
     salvar_dados("ytest.txt", ytest, ntest - w);
 
-    double fim = omp_get_wtime(); // Fim da contagem de tempo
+    // Exibir tempo de execução apenas da fase de previsão
+    printf("Tempo de execução da previsão (KNN): %.5f segundos\n", fim_previsao - inicio_previsao);
 
-    printf("Tempo de execução: %.5f segundos\n", fim - inicio);
-
-    // Liberar memória
+    // Liberação de memória
     for (int i = 0; i < ntrain - w - h; i++) {
         free(X_train[i]);
     }

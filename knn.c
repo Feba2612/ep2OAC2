@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
 // Função para calcular a distância Euclidiana entre vetores
 double calcular_distancia(float *p1, float *p2, int w) {
@@ -159,15 +160,24 @@ int main(int argc, char *argv[]) {
     normalizar_matriz(X_train, ntrain - w - h, w);
     normalizar_matriz(X_test, ntest - w, w);
 
+    // Capturando o tempo de execução da fase de previsão com KNN
+    clock_t start = clock();
+
     // Prever com KNN para X_test
     float *ytest = (float *)malloc((ntest - w) * sizeof(float));
     for (int i = 0; i < ntest - w; i++) {
         ytest[i] = knn(X_train, ytrain, X_test[i], ntrain - w - h, w, k);
     }
 
+    clock_t end = clock();
+    double tempo_execucao = ((double)(end - start)) / CLOCKS_PER_SEC;
+
     // Salvar previsões
     salvar_dados("ytrain.txt", ytrain, ntrain - w - h);
     salvar_dados("ytest.txt", ytest, ntest - w);
+
+    // Exibir o tempo de execução da fase de previsão
+    printf("Tempo de execução (apenas previsão): %.6f segundos\n", tempo_execucao);
 
     // Liberação de memória
     for (int i = 0; i < ntrain - w - h; i++) free(X_train[i]);
