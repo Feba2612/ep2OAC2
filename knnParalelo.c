@@ -3,7 +3,8 @@
 #include <math.h>
 #include <omp.h>
 
-// Função para calcular a distância Euclidiana entre vetores
+// calcula a distância euclidiana entre dois vetores de tamanho w. Ela percorre os elementos de p1 e p2,
+// soma as diferenças quadradas e retorna a raiz quadrada da soma.
 double calcular_distancia(float *p1, float *p2, int w) {
     double soma = 0.0;
     for (int i = 0; i < w; i++) {
@@ -12,7 +13,8 @@ double calcular_distancia(float *p1, float *p2, int w) {
     return sqrt(soma);
 }
 
-// Função para normalizar uma matriz de janelas deslizantes
+//normaliza cada coluna da matriz X. A normalização coloca os valores entre 0 e 1,
+// garantindo que cada atributo tenha a mesma escala. A normalização é paralelizada com OpenMP.
 void normalizar_matriz(float **X, int linhas, int colunas) {
     #pragma omp parallel for
     for (int j = 0; j < colunas; j++) {
@@ -29,7 +31,8 @@ void normalizar_matriz(float **X, int linhas, int colunas) {
     }
 }
 
-// Função para encontrar os K vizinhos mais próximos e retornar a média de `ytrain`
+// implementa o KNN. Para cada instância de xtest, calcula-se a distância para cada exemplo em X_train. 
+//Depois, as k menores distâncias são ordenadas, e a função retorna a média dos valores correspondentes em ytrain.
 float knn(float **X_train, float *ytrain, float *xtest, int ntrain, int w, int k) {
     double *distancias = (double *)malloc(ntrain * sizeof(double));
     int *indices = (int *)malloc(ntrain * sizeof(int));
@@ -69,7 +72,8 @@ float knn(float **X_train, float *ytrain, float *xtest, int ntrain, int w, int k
     return soma_y / k;
 }
 
-// Função para contar o número de linhas em um arquivo
+// Conta o número de linhas em um arquivo. Usada para determinar 
+//quantas amostras de treino e teste existem.
 int contar_linhas(char *arquivo) {
     FILE *fp = fopen(arquivo, "r");
     if (fp == NULL) {
@@ -83,7 +87,7 @@ int contar_linhas(char *arquivo) {
     return linhas;
 }
 
-// Função para ler dados do arquivo
+// Função para ler dados do arquivo e armazenar no vetor x
 void ler_dados(char *arquivo, float *x, int n_linhas) {
     FILE *fp = fopen(arquivo, "r");
     if (fp == NULL) {
@@ -94,7 +98,9 @@ void ler_dados(char *arquivo, float *x, int n_linhas) {
     fclose(fp);
 }
 
-// Função para gerar `X_train` e `ytrain` usando uma janela `w` e uma previsão `h`
+// Função para gerar as janelas deslizantes de `X_train` e calcula os vetores de `ytrain`.
+// A função percorre o vetor de treino (xtrain), criando subconjuntos de tamanho w, 
+// e calcula a média dos próximos h valores para o vetor ytrain.
 void gerar_X_y_train(float *xtrain, float **X_train, float *ytrain, int ntrain, int w, int h) {
     #pragma omp parallel for
     for (int i = 0; i < ntrain - w - h; i++) {
@@ -110,7 +116,7 @@ void gerar_X_y_train(float *xtrain, float **X_train, float *ytrain, int ntrain, 
     }
 }
 
-// Função para salvar resultados
+// Salva os resultados de um vetor y em um arquivo de texto
 void salvar_dados(char *arquivo, float *y, int n_linhas) {
     FILE *fp = fopen(arquivo, "w");
     if (fp == NULL) {
@@ -187,7 +193,7 @@ int main(int argc, char *argv[]) {
     // Salvar previsões
     salvar_dados("ytest.txt", ytest, ntest - w);
 
-    // Exibir tempo de execução apenas da fase de previsão
+    // Exibir tempo de execução apenas da parte de previsão
     printf("Tempo de execução da previsão (KNN): %.5f segundos\n", fim_previsao - inicio_previsao);
 
     // Liberação de memória
@@ -199,6 +205,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < ntest - w; i++) {
         free(X_test[i]);
     }
+
     free(X_test);
 
     free(xtrain);
