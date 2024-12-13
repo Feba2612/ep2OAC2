@@ -14,7 +14,7 @@ double calcular_distancia(float *p1, float *p2, int w) {
 }
 
 //normaliza cada coluna da matriz X. A normalização coloca os valores entre 0 e 1,
-// garantindo que cada atributo tenha a mesma escala.
+// garantindo que cada atributo tenha a mesma escala. A normalização é paralelizada com OpenMP.
 void normalizar_matriz(float **X, int linhas, int colunas) {
     for (int j = 0; j < colunas; j++) {
         float min = X[0][j], max = X[0][j];
@@ -70,6 +70,7 @@ float knn(float **X_train, float *ytrain, float *xtest, int ntrain, int w, int k
     return soma_y / k;
 }
 
+
 // Conta o número de linhas em um arquivo. Usada para determinar 
 //quantas amostras de treino e teste existem.
 int contar_linhas(char *arquivo) {
@@ -104,16 +105,24 @@ void gerar_X_y_train(float *xtrain, float **X_train, float *ytrain, int ntrain, 
         for (int j = 0; j < w; j++) {
             X_train[i][j] = xtrain[i + j];
         }
-        // Calcular a média de `ytrain` para prever `h` passos à frente
         float soma = 0.0;
         for (int j = 0; j < w; j++) {
             soma += xtrain[i + j + h];
         }
-        ytrain[i] = soma / w; 
+        ytrain[i] = soma / w;
     }
 }
 
-// Função para salvar resultados
+// Gera janelas deslizantes para X_test.
+void gerar_X_test(float *xtest, float **X_test, int ntest, int w) {
+    for (int i = 0; i < ntest - w; i++) {
+        for (int j = 0; j < w; j++) {
+            X_test[i][j] = xtest[i + j];
+        }
+    }
+}
+
+// Função para salvar resultados.
 void salvar_dados(char *arquivo, float *y, int n_linhas) {
     FILE *fp = fopen(arquivo, "w");
     if (fp == NULL) {
@@ -143,7 +152,6 @@ int main(int argc, char *argv[]) {
     float *xtrain = (float *)malloc(ntrain * sizeof(float));
     float *xtest = (float *)malloc(ntest * sizeof(float));
 
-    // Matrizes para representar as janelas
     float **X_train = (float **)malloc((ntrain - w - h) * sizeof(float *));
     for (int i = 0; i < ntrain - w - h; i++) {
         X_train[i] = (float *)malloc(w * sizeof(float));
@@ -155,21 +163,17 @@ int main(int argc, char *argv[]) {
         X_test[i] = (float *)malloc(w * sizeof(float));
     }
 
-    // Lendo os dados de treino e teste
     ler_dados(arquivo_train, xtrain, ntrain);
     ler_dados(arquivo_test, xtest, ntest);
 
-    // Gerar janelas deslizantes de treino
     gerar_X_y_train(xtrain, X_train, ytrain, ntrain, w, h);
+    gerar_X_test(xtest, X_test, ntest, w);
 
-    // Normalizar os dados
     normalizar_matriz(X_train, ntrain - w - h, w);
     normalizar_matriz(X_test, ntest - w, w);
 
-    // Capturando o tempo de execução da fase de previsão com KNN
     clock_t start = clock();
 
-    // Prever com KNN para X_test
     float *ytest = (float *)malloc((ntest - w) * sizeof(float));
     for (int i = 0; i < ntest - w; i++) {
         ytest[i] = knn(X_train, ytrain, X_test[i], ntrain - w - h, w, k);
@@ -178,14 +182,11 @@ int main(int argc, char *argv[]) {
     clock_t end = clock();
     double tempo_execucao = ((double)(end - start)) / CLOCKS_PER_SEC;
 
-    // Salvar previsões
     salvar_dados("ytrain.txt", ytrain, ntrain - w - h);
     salvar_dados("ytest.txt", ytest, ntest - w);
 
-    // Exibir o tempo de execução da fase de previsão
     printf("Tempo de execução (apenas previsão): %.6f segundos\n", tempo_execucao);
 
-    // Liberação de memória
     for (int i = 0; i < ntrain - w - h; i++) free(X_train[i]);
     for (int i = 0; i < ntest - w; i++) free(X_test[i]);
     free(xtrain);
